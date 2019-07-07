@@ -3,7 +3,8 @@ import numpy as np
 import random
 
 BITS = 32
-HID1 = 96
+HIDW = 160
+HIDH = 1
 BATCH = 1000
 LR = 0.01
 
@@ -24,14 +25,19 @@ def gen_data():
 def main():
     # build graph
     x = tf.placeholder('float32', shape=(None, BITS * 2), name='input')
-    y = tf.placeholder('float32', shape=(None, BITS + 1), name='output')
+    y = tf.placeholder('float32', shape=(None, BITS + 1), name='label')
 
-    w = tf.Variable(tf.random_normal([BITS * 2, HID1]), name='w1')
-    b = tf.Variable(tf.random_normal([HID1]), name='b1')
+    w = tf.Variable(tf.random_normal([BITS * 2, HIDW]), name='w1')
+    b = tf.Variable(tf.random_normal([HIDW]), name='b1')
     h = tf.sigmoid(tf.matmul(x, w) + b)
 
-    w = tf.Variable(tf.random_normal([HID1, BITS + 1]), name='w2')
-    b = tf.Variable(tf.random_normal([BITS + 1]), name='b2')
+    for l in range(2, HIDH+1):
+        w = tf.Variable(tf.random_normal([HIDW, HIDW]), name='w' + str(l))
+        b = tf.Variable(tf.random_normal([HIDW]), name='b' + str(l))
+        h = tf.sigmoid(tf.matmul(h, w) + b)
+
+    w = tf.Variable(tf.random_normal([HIDW, BITS + 1]), name='wo')
+    b = tf.Variable(tf.random_normal([BITS + 1]), name='bo')
     pred = tf.sigmoid(tf.matmul(h, w) + b)
 
     error = tf.losses.mean_squared_error(y, pred)
@@ -45,7 +51,7 @@ def main():
     with tf.Session() as sess:
         sess.run(init)
 
-        for epoch in range(9999999):
+        for epoch in range(320000):
             xv, yv = gen_data()
             _, errv, erriv, predv = sess.run((opt, error, errori, pred), feed_dict={x: xv, y: yv})
             if epoch % 1000 == 0:
