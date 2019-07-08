@@ -35,14 +35,18 @@ def assign_op(tw1, tb1, tw2, tb2):
             b1[i1*3+0] = 0.5 - (1 << i1)
             b1[i1*3+1] = 0.5 - (1 << i1) * 2
             b1[i1*3+2] = 0.5 - (1 << i1) * 3
+    # let's make it larger so the pre-sigmoid value is further away from 0,
+    # so and the post-sigmoid value is more distinct.
+    w1 = w1 * 10
+    b1 = b1 * 10
 
     for i in range(BITS):
-        w2[i*3+0, i] = 1
-        w2[i*3+1, i] = -1
-        w2[i*3+2, i] = 1
-        b2[i] = -1.5
-    w2[(BITS-1)*3+1, BITS] = 1
-    b2[BITS] = -0.5
+        w2[i*3+0, i] = 10
+        w2[i*3+1, i] = -10
+        w2[i*3+2, i] = 10
+        b2[i] = -5
+    w2[(BITS-1)*3+1, BITS] = 10
+    b2[BITS] = -5
 
     return (tf.assign(tw1, w1), tf.assign(tb1, b1), tf.assign(tw2, w2), tf.assign(tb2, b2))
 
@@ -51,10 +55,10 @@ def main():
     x = tf.placeholder('float32', shape=(None, BITS * 2), name='input')
     y = tf.placeholder('float32', shape=(None, BITS + 1), name='label')
 
-    w1 = tf.Variable(tf.random_normal((BITS * 2, HID)), name='w1')
-    b1 = tf.Variable(tf.random_normal((HID,)), name='b1')
-    hp = tf.matmul(x, w1) + b1
-    h = tf.sigmoid(hp)
+    w1 = tf.Variable(tf.random_normal((BITS * 2, HID), dtype=tf.float64), name='w1')
+    b1 = tf.Variable(tf.random_normal((HID,), dtype=tf.float64), name='b1')
+    hp = tf.matmul(tf.cast(x, tf.float64), w1) + b1
+    h = tf.cast(tf.sigmoid(hp), tf.float32)
     #h = tf.sigmoid(tf.matmul(x, w1) + b1)
 
     w2 = tf.Variable(tf.random_normal((HID, BITS + 1)), name='w2')
@@ -75,7 +79,7 @@ def main():
         sess.run(assign)
         #print(sess.run(b2))
         xv = np.zeros((1, BITS * 2))
-        xv[:,0:BITS] = 1
+        #xv[:,0:BITS] = 1
         print(sess.run((hp, h, pred), feed_dict={x: xv}))
 
 if __name__ == '__main__':
