@@ -59,7 +59,6 @@ def main():
     b1 = tf.Variable(tf.random_normal((HID,), dtype=tf.float64), name='b1')
     hp = tf.matmul(tf.cast(x, tf.float64), w1) + b1
     h = tf.cast(tf.sigmoid(hp), tf.float32)
-    #h = tf.sigmoid(tf.matmul(x, w1) + b1)
 
     w2 = tf.Variable(tf.random_normal((HID, BITS + 1)), name='w2')
     b2 = tf.Variable(tf.random_normal((BITS + 1,)), name='b2')
@@ -77,10 +76,16 @@ def main():
     with tf.Session() as sess:
         sess.run(init)
         sess.run(assign)
+
         #print(sess.run(b2))
-        xv = np.zeros((1, BITS * 2))
+        #xv = np.zeros((1, BITS * 2))
         #xv[:,0:BITS] = 1
-        print(sess.run((hp, h, pred), feed_dict={x: xv}))
+        #print(sess.run((hp, h, pred), feed_dict={x: xv}))
+
+        for epoch in range(100):
+            xv, yv = gen_data()
+            errv, erriv = sess.run((error, errori), feed_dict={x: xv, y: yv})
+            print(errv, erriv)
 
 if __name__ == '__main__':
     main()
