@@ -3,8 +3,7 @@ import numpy as np
 import random
 
 BITS = 32
-HIDW = 160
-HIDH = 1
+HID = [160]
 BATCH = 1000
 LR = 0.01
 
@@ -23,22 +22,16 @@ def gen_data():
     return x, y
 
 def main():
-    # build graph
     x = tf.placeholder('float32', shape=(None, BITS * 2), name='input')
     y = tf.placeholder('float32', shape=(None, BITS + 1), name='label')
 
-    w = tf.Variable(tf.random_normal([BITS * 2, HIDW]), name='w1')
-    b = tf.Variable(tf.random_normal([HIDW]), name='b1')
-    h = tf.sigmoid(tf.matmul(x, w) + b)
-
-    for l in range(2, HIDH+1):
-        w = tf.Variable(tf.random_normal([HIDW, HIDW]), name='w' + str(l))
-        b = tf.Variable(tf.random_normal([HIDW]), name='b' + str(l))
+    layers = [BITS * 2] + HID + [BITS + 1]
+    h = x
+    for i in range(1, len(layers)):
+        w = tf.Variable(tf.random_normal([layers[i-1], layers[i]]), name='w{}'.format(i))
+        b = tf.Variable(tf.random_normal([layers[i]]), name='b{}'.format(i))
         h = tf.sigmoid(tf.matmul(h, w) + b)
-
-    w = tf.Variable(tf.random_normal([HIDW, BITS + 1]), name='wo')
-    b = tf.Variable(tf.random_normal([BITS + 1]), name='bo')
-    pred = tf.sigmoid(tf.matmul(h, w) + b)
+    pred = h
 
     error = tf.losses.mean_squared_error(y, pred)
     errori = tf.reduce_sum(tf.squared_difference(tf.round(pred), y))
