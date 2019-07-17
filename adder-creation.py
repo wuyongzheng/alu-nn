@@ -8,8 +8,8 @@ BATCH = 1000
 LR = 0.01
 
 def gen_data():
-    x = np.zeros((BATCH, BITS * 2), dtype=np.float32)
-    y = np.zeros((BATCH, BITS + 1), dtype=np.float32)
+    x = np.zeros((BATCH, BITS * 2))
+    y = np.zeros((BATCH, BITS + 1))
     for i in range(BATCH):
         r1 = random.randint(0, (1 << BITS) - 1)
         x1 = [1 if r1 & (1 << x) else 0 for x in range(BITS)]
@@ -21,6 +21,7 @@ def gen_data():
         y[i, :] = y1
     return x, y
 
+# We don't train the parameters. We assign them!
 def assign_op(tw1, tb1, tw2, tb2):
     w1 = np.zeros((BITS * 2, HID))
     b1 = np.zeros((HID))
@@ -36,29 +37,29 @@ def assign_op(tw1, tb1, tw2, tb2):
             b1[i1*3+1] = 0.5 - (1 << i1) * 2
             b1[i1*3+2] = 0.5 - (1 << i1) * 3
     # let's make it larger so the pre-sigmoid value is further away from 0,
-    # so and the post-sigmoid value is more distinct.
-    w1 = w1 * 10
-    b1 = b1 * 10
+    # and so the post-sigmoid value is more distinct.
+    w1 = w1 * 8
+    b1 = b1 * 8
 
     for i in range(BITS):
-        w2[i*3+0, i] = 10
-        w2[i*3+1, i] = -10
-        w2[i*3+2, i] = 10
-        b2[i] = -5
-    w2[(BITS-1)*3+1, BITS] = 10
-    b2[BITS] = -5
+        w2[i*3+0, i] = 8
+        w2[i*3+1, i] = -8
+        w2[i*3+2, i] = 8
+        b2[i] = -4
+    w2[(BITS-1)*3+1, BITS] = 8
+    b2[BITS] = -4
 
     return (tf.assign(tw1, w1), tf.assign(tb1, b1), tf.assign(tw2, w2), tf.assign(tb2, b2))
 
 def main():
     # build graph
-    x = tf.placeholder('float32', shape=(None, BITS * 2), name='input')
-    y = tf.placeholder('float32', shape=(None, BITS + 1), name='label')
+    x = tf.placeholder(tf.float32, shape=(None, BITS * 2), name='input')
+    y = tf.placeholder(tf.float32, shape=(None, BITS + 1), name='label')
 
-    w1 = tf.Variable(tf.random_normal((BITS * 2, HID), dtype=tf.float64), name='w1')
-    b1 = tf.Variable(tf.random_normal((HID,), dtype=tf.float64), name='b1')
-    hp = tf.matmul(tf.cast(x, tf.float64), w1) + b1
-    h = tf.cast(tf.sigmoid(hp), tf.float32)
+    w1 = tf.Variable(tf.random_normal((BITS * 2, HID)), name='w1')
+    b1 = tf.Variable(tf.random_normal((HID,)), name='b1')
+    hp = tf.matmul(x, w1) + b1
+    h = tf.sigmoid(hp)
 
     w2 = tf.Variable(tf.random_normal((HID, BITS + 1)), name='w2')
     b2 = tf.Variable(tf.random_normal((BITS + 1,)), name='b2')
@@ -70,8 +71,8 @@ def main():
 
     init = tf.initialize_all_variables()
     assign = assign_op(w1, b1, w2, b2)
-    saver = tf.train.Saver()
-    logger = open('adder.log', 'w')
+    #saver = tf.train.Saver()
+    #logger = open('adder.log', 'w')
 
     with tf.Session() as sess:
         sess.run(init)

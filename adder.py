@@ -1,10 +1,12 @@
 import tensorflow as tf
 import numpy as np
 import random
+import sys
 
 BITS = 32
-HID = [160]
+#HID = [160]
 BATCH = 1000
+EPOCHS = 320000
 LR = 0.01
 
 def gen_data():
@@ -22,6 +24,12 @@ def gen_data():
     return x, y
 
 def main():
+    if len(sys.argv) != 2:
+        print('Usage: python3 adder.py <hidden layer1 width>,<hidden layer2 width>,...')
+        print('E.g. : python3 adder.py 160,160')
+        return
+    HID = [int(x) for x in sys.argv[1].split(',')]
+
     x = tf.placeholder('float32', shape=(None, BITS * 2), name='input')
     y = tf.placeholder('float32', shape=(None, BITS + 1), name='label')
 
@@ -44,7 +52,7 @@ def main():
     with tf.Session() as sess:
         sess.run(init)
 
-        for epoch in range(320000):
+        for epoch in range(EPOCHS):
             xv, yv = gen_data()
             _, errv, erriv, predv = sess.run((opt, error, errori, pred), feed_dict={x: xv, y: yv})
             if epoch % 1000 == 0:
