@@ -21,12 +21,11 @@ def gen_data():
         y[i, :] = y1
     return x, y
 
-# We don't train the parameters. We assign them!
-def assign_op(tw1, tb1, tw2, tb2):
-    w1 = np.zeros((BITS * 2, HID))
-    b1 = np.zeros((HID))
-    w2 = np.zeros((HID, BITS + 1))
-    b2 = np.zeros((BITS + 1))
+def get_parameters():
+    w1 = np.zeros((BITS * 2, HID), dtype=np.float32)
+    b1 = np.zeros((HID), dtype=np.float32)
+    w2 = np.zeros((HID, BITS + 1), dtype=np.float32)
+    b2 = np.zeros((BITS + 1), dtype=np.float32)
 
     for i1 in range(BITS):
         for i0 in range(i1+1):
@@ -49,20 +48,19 @@ def assign_op(tw1, tb1, tw2, tb2):
     w2[(BITS-1)*3+1, BITS] = 8
     b2[BITS] = -4
 
-    return (tf.assign(tw1, w1), tf.assign(tb1, b1), tf.assign(tw2, w2), tf.assign(tb2, b2))
+    return w1, b1, w2, b2
 
 def main():
-    # build graph
     x = tf.placeholder(tf.float32, shape=(None, BITS * 2), name='input')
     y = tf.placeholder(tf.float32, shape=(None, BITS + 1), name='label')
 
-    w1 = tf.Variable(tf.random_normal((BITS * 2, HID)), name='w1')
-    b1 = tf.Variable(tf.random_normal((HID,)), name='b1')
-    hp = tf.matmul(x, w1) + b1
-    h = tf.sigmoid(hp)
+    npw1, npb1, npw2, npb2 = get_parameters()
+    w1 = tf.Variable(npw1, name='w1')
+    b1 = tf.Variable(npb1, name='b1')
+    h = tf.sigmoid(tf.matmul(x, w1) + b1)
 
-    w2 = tf.Variable(tf.random_normal((HID, BITS + 1)), name='w2')
-    b2 = tf.Variable(tf.random_normal((BITS + 1,)), name='b2')
+    w2 = tf.Variable(npw2, name='w2')
+    b2 = tf.Variable(npb2, name='b2')
     pred = tf.sigmoid(tf.matmul(h, w2) + b2)
 
     error = tf.losses.mean_squared_error(y, pred)
@@ -70,18 +68,9 @@ def main():
     opt = tf.train.AdamOptimizer(0.01).minimize(error)
 
     init = tf.initialize_all_variables()
-    assign = assign_op(w1, b1, w2, b2)
-    #saver = tf.train.Saver()
-    #logger = open('adder.log', 'w')
 
     with tf.Session() as sess:
         sess.run(init)
-        sess.run(assign)
-
-        #print(sess.run(b2))
-        #xv = np.zeros((1, BITS * 2))
-        #xv[:,0:BITS] = 1
-        #print(sess.run((hp, h, pred), feed_dict={x: xv}))
 
         for epoch in range(100):
             xv, yv = gen_data()
